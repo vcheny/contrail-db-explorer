@@ -23,7 +23,7 @@ optional arguments:
   -v, --verbose     Run in verbose/INFO mode, default False
  
 
-[cheny-mbp:~/W]$ python db_explorer.py show -h
+[cheny-mbp:~/]$ python db_explorer.py show -h
 usage: db_explorer show [-h] {svc_mon,dm,zk,config_db,to_bgp,useragent} ...
 
 positional arguments:
@@ -55,4 +55,457 @@ optional arguments:
   -h, --help            show this help message and exit
   -d, --detail          Display details
 
+root@aio50:~# python db_explorer.py --json_file db-dump.json show config_db uuid -h
+usage: db_explorer show config_db [-h] [-t] [-a AFTER] [-b BEFORE] [-d]
+                                  [--type {service_appliance_set,virtual_router,security_group,global_system_config,network_policy,qos_config,route_table,interface_route_table,forwarding_class,service_appliance,routing_policy,network_ipam,config_node,namespace,logical_router,floating_ip,global_qos_config,service_health_check,bgp_router,domain,service_instance,loadbalancer_member,virtual_ip,api_access_list,qos_forwarding_class,discovery_service_assignment,project,route_target,virtual_machine,qos_queue,virtual_machine_interface,database_node,analytics_node,floating_ip_pool,instance_ip,access_control_list,bgp_as_a_service,global_vrouter_config,loadbalancer_pool,port_tuple,service_template,routing_instance,virtual_network}]
+                                  [--re RE] [-i [INCLUDE [INCLUDE ...]]]
+                                  [-e [EXCLUDE [EXCLUDE ...]]]
+                                  {shared_obj,fqn,uuid} [search [search ...]]
+
+positional arguments:
+  {shared_obj,fqn,uuid}
+                        {'shared_obj': 'obj_shared_table', 'fqn':
+                        'obj_fq_name_table', 'uuid': 'obj_uuid_table'}
+  search                search string
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -t, --time            Display creation/modification time
+  -a AFTER, --after AFTER
+                        show objects created after given time e.g.
+                        2018-03-19T15:27:01
+  -b BEFORE, --before BEFORE
+                        show objects created before given time e.g.
+                        2018-03-19T15:27:01
+  -d, --detail          Display details
+  --type {service_appliance_set,virtual_router,security_group,global_system_config,network_policy,qos_config,route_table,interface_route_table,forwarding_class,service_appliance,routing_policy,network_ipam,config_node,namespace,logical_router,floating_ip,global_qos_config,service_health_check,bgp_router,domain,service_instance,loadbalancer_member,virtual_ip,api_access_list,qos_forwarding_class,discovery_service_assignment,project,route_target,virtual_machine,qos_queue,virtual_machine_interface,database_node,analytics_node,floating_ip_pool,instance_ip,access_control_list,bgp_as_a_service,global_vrouter_config,loadbalancer_pool,port_tuple,service_template,routing_instance,virtual_network}
+                        Object types
+  --re RE               Regular expression to match object properties.
+  -i [INCLUDE [INCLUDE ...]], --include [INCLUDE [INCLUDE ...]]
+                        Only display properties containing given string
+  -e [EXCLUDE [EXCLUDE ...]], --exclude [EXCLUDE [EXCLUDE ...]]
+                        Exclude properties containing given string
+
+```
+
+## Examples
+
+### Take Contrail db snapshot [Backing Up Contrail Databases Using JSON Format](https://www.juniper.net/documentation/en_US/contrail4.0/topics/concept/backup-using-json-40.html)
+
+```
+root@aio50:~# python /usr/lib/python2.7/dist-packages/cfgm_common/db_json_exim.py --export-to db-dump.json
+root@aio50:~# ls -l db-dump.json 
+-rw-r--r-- 1 root root 216319 Apr 19 08:22 db-dump.json
+```
+
+### Show objects
+#### Use uuid or search strings
+```
+root@aio50:~# ./db_explorer.py --json_file db-dump.json show config_db uuid 4ee402ce-1e7d-4df6-b089-d704138c768d
+
+4ee402ce-1e7d-4df6-b089-d704138c768d:
+    META:latest_col_ts: null
+    children:routing_instance:290f7726-32d6-49fc-8ec1-d77adab6ef16: null
+    fq_name: default-domain:admin:db_test
+    parent:project:07007e67-196d-4a97-b861-0b0d9daa5eaf: null
+    parent_type: project
+    prop:display_name: db_test
+    prop:ecmp_hashing_include_fields: ...
+    prop:export_route_target_list: ...
+    prop:flood_unknown_unicast: false
+    prop:id_perms: ...
+    prop:import_route_target_list: ...
+    prop:is_shared: false
+    prop:multi_policy_service_chains_enabled: false
+    prop:perms2: ...
+    prop:router_external: false
+    prop:virtual_network_network_id: 8
+    prop:virtual_network_properties: ...
+    ref:network_ipam:6e80550a-3ba0-4207-9036-2ac6f48a48ac: ...
+    type: virtual_network
+
+root@aio50:~# ./db_explorer.py --json_file db-dump.json show config_db uuid db_test --type virtual_network
+
+4ee402ce-1e7d-4df6-b089-d704138c768d:
+    META:latest_col_ts: null
+    children:routing_instance:290f7726-32d6-49fc-8ec1-d77adab6ef16: null
+    fq_name: default-domain:admin:db_test
+    parent:project:07007e67-196d-4a97-b861-0b0d9daa5eaf: null
+    parent_type: project
+    prop:display_name: db_test
+    prop:ecmp_hashing_include_fields: ...
+    prop:export_route_target_list: ...
+    prop:flood_unknown_unicast: false
+    prop:id_perms: ...
+    prop:import_route_target_list: ...
+    prop:is_shared: false
+    prop:multi_policy_service_chains_enabled: false
+    prop:perms2: ...
+    prop:router_external: false
+    prop:virtual_network_network_id: 8
+    prop:virtual_network_properties: ...
+    ref:network_ipam:6e80550a-3ba0-4207-9036-2ac6f48a48ac: ...
+    type: virtual_network
+```
+
+#### Use regular expression
+
+##### List all objects under project 07007e67-196d-4a97-b861-0b0d9daa5eaf
+```
+root@aio50:~# ./db_explorer.py --json_file db-dump.json show config_db uuid --re parent:.*07007e67-196d-4a97-b861-0b0d9daa5eaf
+
+904ef780-bf27-41f8-add8-45fd0e766631:
+    META:latest_col_ts: null
+    children:access_control_list:c5bc46b0-296d-41c0-b883-2574db385ca3: null
+    children:access_control_list:da2e055d-6985-410d-a3fc-3d073d11718f: null
+    fq_name: default-domain:admin:default
+    parent:project:07007e67-196d-4a97-b861-0b0d9daa5eaf: null
+    parent_type: project
+    prop:display_name: default
+    prop:id_perms: ...
+    prop:perms2: ...
+    prop:security_group_entries: ...
+    prop:security_group_id: 8000001
+    type: security_group
+
+28b65c31-a9af-4fb4-9431-52e159e7246f:
+    META:latest_col_ts: null
+    children:routing_instance:2e8231db-3a42-438e-a3ee-96c8ad349e6a: null
+    fq_name: default-domain:admin:VN-1-Jiang
+    parent:project:07007e67-196d-4a97-b861-0b0d9daa5eaf: null
+    parent_type: project
+    prop:display_name: VN-1-Jiang
+    prop:ecmp_hashing_include_fields: ...
+    prop:export_route_target_list: ...
+    prop:flood_unknown_unicast: false
+    prop:id_perms: ...
+    prop:import_route_target_list: ...
+    prop:is_shared: false
+    prop:multi_policy_service_chains_enabled: false
+    prop:perms2: ...
+    prop:router_external: false
+    prop:virtual_network_network_id: 4
+    prop:virtual_network_properties: ...
+    ref:network_ipam:6e80550a-3ba0-4207-9036-2ac6f48a48ac: ...
+    type: virtual_network
+<snip>
+```
+##### List all instance-ips inside vn 73706c23-3e1e-40fe-ac7d-39f96572939c
+```
+root@aio50:~# ./db_explorer.py --json_file db.json show config_db uuid --type instance_ip --re ref:.*73706c23-3e1e-40fe-ac7d-39f96572939c
+
+0aa3481a-b79a-4acb-92b5-dce90195cbeb:
+    META:latest_col_ts: null
+    fq_name: 0aa3481a-b79a-4acb-92b5-dce90195cbeb
+    prop:display_name: 0aa3481a-b79a-4acb-92b5-dce90195cbeb
+    prop:id_perms: ...
+    prop:instance_ip_address: cafe:1234:1234::3
+    prop:instance_ip_family: v6
+    prop:perms2: ...
+    ref:virtual_machine_interface:9c27eb45-3509-4f2d-abc3-a6ab988e346a: ...
+    ref:virtual_network:73706c23-3e1e-40fe-ac7d-39f96572939c: ...
+    type: instance_ip
+
+e1a90ea5-5417-4a3a-8f45-1e86d961ed9d:
+    META:latest_col_ts: null
+    fq_name: e1a90ea5-5417-4a3a-8f45-1e86d961ed9d
+    prop:display_name: e1a90ea5-5417-4a3a-8f45-1e86d961ed9d
+    prop:id_perms: ...
+    prop:instance_ip_address: 1.2.3.3
+    prop:instance_ip_family: v4
+    prop:perms2: ...
+    ref:virtual_machine_interface:9c27eb45-3509-4f2d-abc3-a6ab988e346a: ...
+    ref:virtual_network:73706c23-3e1e-40fe-ac7d-39f96572939c: ...
+    type: instance_ip
+
+52151fbb-c1c3-47c4-8639-ea4ef00cd6c3:
+    META:latest_col_ts: null
+    fq_name: 52151fbb-c1c3-47c4-8639-ea4ef00cd6c3
+    prop:display_name: 52151fbb-c1c3-47c4-8639-ea4ef00cd6c3
+    prop:id_perms: ...
+    prop:instance_ip_address: 1.2.3.4
+    prop:instance_ip_family: v4
+    prop:perms2: ...
+    ref:virtual_machine_interface:392dd5ad-2a50-4db4-8620-400baeb188c4: ...
+    ref:virtual_network:73706c23-3e1e-40fe-ac7d-39f96572939c: ...
+    type: instance_ip
+
+```
+#### Use object modifcation time
+##### List any objects that was modified after 2018-04-19T15:00:00
+```
+root@aio50:~# ./db_explorer.py --json_file db-dump.json show config_db uuid -a 2018-04-19T15:00:00
+
+4ee402ce-1e7d-4df6-b089-d704138c768d:
+    META:latest_col_ts: null
+    children:routing_instance:290f7726-32d6-49fc-8ec1-d77adab6ef16: null
+    fq_name: default-domain:admin:db_test
+    parent:project:07007e67-196d-4a97-b861-0b0d9daa5eaf: null
+    parent_type: project
+    prop:display_name: db_test
+    prop:ecmp_hashing_include_fields: ...
+    prop:export_route_target_list: ...
+    prop:flood_unknown_unicast: false
+    prop:id_perms: ...
+    prop:import_route_target_list: ...
+    prop:is_shared: true
+    prop:multi_policy_service_chains_enabled: false
+    prop:perms2: ...
+    prop:router_external: false
+    prop:virtual_network_network_id: 8
+    prop:virtual_network_properties: ...
+    ref:network_ipam:6e80550a-3ba0-4207-9036-2ac6f48a48ac: ...
+    type: virtual_network
+```
+### Customized object output
+#### Show all ip addresses assigned to vn 73706c23-3e1e-40fe-ac7d-39f96572939c
+```
+root@aio50:~# ./db_explorer.py --json_file cluster100-db.json show config_db uuid --type instance_ip --re ref:.*73706c23-3e1e-40fe-ac7d-39f96572939c -i prop:instance_ip_address
+
+0aa3481a-b79a-4acb-92b5-dce90195cbeb:
+    prop:instance_ip_address: cafe:1234:1234::3
+
+e1a90ea5-5417-4a3a-8f45-1e86d961ed9d:
+    prop:instance_ip_address: 1.2.3.3
+
+52151fbb-c1c3-47c4-8639-ea4ef00cd6c3:
+    prop:instance_ip_address: 1.2.3.4
+```
+
+#### Show vmi 0869385b-c9ca-42f2-ab36-9eb70d032b86 property details
+```
+root@aio50:~# ./db_explorer.py --json_file db-dump.json show config_db uuid 0869385b-c9ca-42f2-ab36-9eb70d032b86 -i prop -d
+
+0869385b-c9ca-42f2-ab36-9eb70d032b86:
+    prop:display_name: 0869385b-c9ca-42f2-ab36-9eb70d032b86
+    prop:ecmp_hashing_include_fields: ...
+    prop:id_perms: ...
+         enable: True
+         description: None
+         creator: None
+         created: 2018-04-13T18:35:17.239998
+         user_visible: True
+         last_modified: 2018-04-13T18:35:17.257496
+         permissions:
+            owner: admin
+            owner_access: 7
+            other_access: 7
+            group: admin
+            group_access: 7
+         uuid:
+            uuid_mslong: 606077591736697586
+            uuid_lslong: 12337222738262567814
+    prop:perms2: ...
+         owner: 7aa371a3fc304098949d69384567a71c
+         owner_access: 7
+         global_access: 0
+         share:
+    prop:port_security_enabled: true
+    prop:virtual_machine_interface_allowed_address_pairs: ...
+    prop:virtual_machine_interface_device_owner: 
+    prop:virtual_machine_interface_dhcp_option_list: ...
+    prop:virtual_machine_interface_disable_policy: false
+    prop:virtual_machine_interface_mac_addresses: ...
+         mac_address:
+            02:08:69:38:5b:c9
+    prop:virtual_machine_interface_properties: ...
+         local_preference: None
+         interface_mirror: None
+    propm:virtual_machine_interface_bindings:vnic_type: ...
+         key: vnic_type
+         value: normal
+ ```
+ 
+#### Display attribute modification time
+```
+root@aio50:~# ./db_explorer.py --json_file db-dump.json show config_db uuid 4ee402ce-1e7d-4df6-b089-d704138c768d -t
+
+4ee402ce-1e7d-4df6-b089-d704138c768d:
+   @2018-04-19T15:14:30.235931 META:latest_col_ts: null
+   @2018-04-13T18:51:13.613059 children:routing_instance:290f7726-32d6-49fc-8ec1-d77adab6ef16: null
+   @2018-04-13T18:51:13.586593 fq_name: default-domain:admin:db_test
+   @2018-04-13T18:51:13.584327 parent:project:07007e67-196d-4a97-b861-0b0d9daa5eaf: null
+   @2018-04-13T18:51:13.586593 parent_type: project
+   @2018-04-13T18:51:13.585054 prop:display_name: db_test
+   @2018-04-13T18:51:13.585023 prop:ecmp_hashing_include_fields: ...
+   @2018-04-13T18:51:13.585249 prop:export_route_target_list: ...
+   @2018-04-13T18:51:13.585278 prop:flood_unknown_unicast: false
+   @2018-04-19T15:14:30.235453 prop:id_perms: ...
+   @2018-04-13T18:51:13.585174 prop:import_route_target_list: ...
+   @2018-04-19T15:14:30.235991 prop:is_shared: true
+   @2018-04-13T18:51:13.585386 prop:multi_policy_service_chains_enabled: false
+   @2018-04-19T15:14:30.236037 prop:perms2: ...
+   @2018-04-13T18:51:13.585141 prop:router_external: false
+   @2018-04-13T18:51:13.585105 prop:virtual_network_network_id: 8
+   @2018-04-13T18:51:13.584971 prop:virtual_network_properties: ...
+   @2018-04-13T18:51:13.585969 ref:network_ipam:6e80550a-3ba0-4207-9036-2ac6f48a48ac: ...
+   @2018-04-13T18:51:13.586593 type: virtual_network
+```
+
+### Compare two db json files
+#### Compare both cassandra and zookeeper db
+```
+root@aio50:~# ./db_explorer.py --json_file old-db-dump.json comp db-dump.json all
+zookeeper:
+   /vnc_api_server_obj_create/     removed[-]:   0  added[+]:   0  modified[*]:   0
+   /id/security-groups/id/         removed[-]:   0  added[+]:   0  modified[*]:   0
+   /id/bgp/route-targets/          removed[-]:   0  added[+]:   1  modified[*]:   0
+   other_paths                     removed[-]:   0  added[+]:   0  modified[*]:   0
+   /id/virtual-networks/           removed[-]:   0  added[+]:   1  modified[*]:   0
+   /fq-name-to-uuid/               removed[-]:   0  added[+]:   2  modified[*]:   1
+   /id/bgpaas/port/                removed[-]:   0  added[+]:   0  modified[*]:   0
+   /api-server/subnets/            removed[-]:   0  added[+]:   4  modified[*]:   0
+keyspace: config_db_uuid
+   obj_shared_table                removed[-]:   0  added[+]:   1  modified[*]:   0
+   obj_uuid_table                  removed[-]:   0  added[+]:  13  modified[*]:  10
+   obj_fq_name_table               removed[-]:   0  added[+]:  13  modified[*]:   0
+keyspace: to_bgp_keyspace
+   service_chain_uuid_table        removed[-]:   0  added[+]:   0  modified[*]:   0
+   service_chain_ip_address_table  removed[-]:   0  added[+]:   0  modified[*]:   0
+   service_chain_table             removed[-]:   0  added[+]:   0  modified[*]:   0
+   route_target_table              removed[-]:   0  added[+]:   1  modified[*]:   0
+keyspace: useragent
+   useragent_keyval_table          removed[-]:   0  added[+]:   2  modified[*]:   0
+keyspace: svc_monitor_keyspace
+   service_instance_table          removed[-]:   0  added[+]:   0  modified[*]:   0
+   loadbalancer_table              removed[-]:   0  added[+]:   0  modified[*]:   0
+   pool_table                      removed[-]:   0  added[+]:   0  modified[*]:   0
+keyspace: dm_keyspace
+   dm_pnf_resource_table           removed[-]:   0  added[+]:   0  modified[*]:   0
+   dm_pr_vn_ip_table               removed[-]:   0  added[+]:   0  modified[*]:   0
+```
+#### Compare keyspaces
+```
+root@aio50:~# ./db_explorer.py --json_file old-db-dump.json comp db-dump.json config_db_uuid
+keyspace: config_db_uuid
+   obj_shared_table                removed[-]:   0  added[+]:   1  modified[*]:   0
+   obj_uuid_table                  removed[-]:   0  added[+]:  13  modified[*]:  10
+   obj_fq_name_table               removed[-]:   0  added[+]:  13  modified[*]:   0
+```
+#### Display change details
+```
+root@aio50:~# ./db_explorer.py --json_file old-db-dump.json comp db-dump.json config_db_uuid -d
+keyspace: config_db_uuid
+   obj_shared_table                removed[-]:   0  added[+]:   1  modified[*]:   0
+      + virtual_network:global::4ee402ce-1e7d-4df6-b089-d704138c768d
+   obj_uuid_table                  removed[-]:   0  added[+]:  13  modified[*]:  10
+      + a9490d27-ead3-4a6c-9b32-cb2f28064909
+      + 368668e5-0f78-40e1-8389-2ca911aa8c31
+      + 0501f7a6-8f66-4955-bb03-581b7e429c9a
+      + 479b5423-f599-4c79-b190-550928e995f7
+      + 8a156ee8-d12e-4afa-83d8-c11c4d186c85
+      + 7fc96aa6-b429-4054-994e-bea143e8f21f
+      + 5caf97ea-941b-4721-a228-2b2bb90129fb
+      + e3d2f53a-b0cb-4971-991d-e8f5ea0b9c3c
+      + 800c1ffc-ef91-43f7-a15e-3c4ac7635773
+      + dd8380e4-50c3-4416-a05e-fb0e65d15f4d
+      + 1ca2cb5e-49b9-45e3-84e0-0edf439e65ce
+      + 34b61a59-3603-48f1-ab5b-c91118b527ad
+      + 5dce52fc-165e-465c-b7df-58466b16f407
+      - 4ee402ce-1e7d-4df6-b089-d704138c768d
+      - 28b65c31-a9af-4fb4-9431-52e159e7246f
+      - 7aa371a3-fc30-4098-949d-69384567a71c
+      - 2e8231db-3a42-438e-a3ee-96c8ad349e6a
+      - 07007e67-196d-4a97-b861-0b0d9daa5eaf
+      - 0869385b-c9ca-42f2-ab36-9eb70d032b86
+      - be3120c9-c3bc-46a0-9674-59f13e348168
+      - 638aa389-3429-4171-b1fa-2a242bfc7a8f
+      - 6e80550a-3ba0-4207-9036-2ac6f48a48ac
+      - 904ef780-bf27-41f8-add8-45fd0e766631
+   obj_fq_name_table               removed[-]:   0  added[+]:  13  modified[*]:   0
+      + virtual_machine_interface:default-domain:admin:368668e5-0f78-40e1-8389-2ca911aa8c31:368668e5-0f78-40e1-8389-2ca911aa8c31
+      + virtual_machine_interface:default-domain:admin:e3d2f53a-b0cb-4971-991d-e8f5ea0b9c3c:e3d2f53a-b0cb-4971-991d-e8f5ea0b9c3c
+      + instance_ip:34b61a59-3603-48f1-ab5b-c91118b527ad:34b61a59-3603-48f1-ab5b-c91118b527ad
+      + routing_instance:default-domain:demo:vn-dual:vn-dual:dd8380e4-50c3-4416-a05e-fb0e65d15f4d
+      + virtual_machine_interface:default-domain:admin:5caf97ea-941b-4721-a228-2b2bb90129fb:5caf97ea-941b-4721-a228-2b2bb90129fb
+      + virtual_machine:7fc96aa6-b429-4054-994e-bea143e8f21f:7fc96aa6-b429-4054-994e-bea143e8f21f
+      + route_target:target:65150:8000006:800c1ffc-ef91-43f7-a15e-3c4ac7635773
+      + instance_ip:1ca2cb5e-49b9-45e3-84e0-0edf439e65ce:1ca2cb5e-49b9-45e3-84e0-0edf439e65ce
+      + virtual_machine:8a156ee8-d12e-4afa-83d8-c11c4d186c85:8a156ee8-d12e-4afa-83d8-c11c4d186c85
+      + virtual_machine:5dce52fc-165e-465c-b7df-58466b16f407:5dce52fc-165e-465c-b7df-58466b16f407
+      + virtual_network:default-domain:demo:vn-dual:a9490d27-ead3-4a6c-9b32-cb2f28064909
+      + instance_ip:0501f7a6-8f66-4955-bb03-581b7e429c9a:0501f7a6-8f66-4955-bb03-581b7e429c9a
+      + instance_ip:479b5423-f599-4c79-b190-550928e995f7:479b5423-f599-4c79-b190-550928e995f7
+```
+#### Compare objects
+```
+root@aio50:~# ./db_explorer.py --json_file old-db-dump.json comp db-dump.json object 4ee402ce-1e7d-4df6-b089-d704138c768d
+4ee402ce-1e7d-4df6-b089-d704138c768d:
+    META:latest_col_ts: null
+    children:routing_instance:290f7726-32d6-49fc-8ec1-d77adab6ef16: null
+    fq_name: default-domain:admin:db_test
+    parent:project:07007e67-196d-4a97-b861-0b0d9daa5eaf: null
+    parent_type: project
+    prop:display_name: db_test
+    prop:ecmp_hashing_include_fields: ...
+    prop:export_route_target_list: ...
+         route_target:
+    prop:flood_unknown_unicast: false
+   *[old]2018-04-13T18:51:13.585354 prop:id_perms: ...
+         enable: True
+         uuid:
+            uuid_mslong: 5684671713946455542
+            uuid_lslong: 12720935034992490125
+         created: 2018-04-13T18:51:13.585297
+         description: None
+         creator: None
+         user_visible: True
+         last_modified: 2018-04-13T18:51:13.585297
+         permissions:
+            owner: admin
+            owner_access: 7
+            other_access: 7
+            group: KeystoneServiceAdmin
+            group_access: 7
+   *[new]2018-04-19T15:14:30.235453 prop:id_perms: ...
+         enable: True
+         description: None
+         created: 2018-04-13T18:51:13.585297
+         creator: None
+         uuid:
+            uuid_mslong: 5684671713946455542
+            uuid_lslong: 12720935034992490125
+         user_visible: True
+         last_modified: 2018-04-19T15:14:30.235401
+         permissions:
+            owner: admin
+            owner_access: 7
+            other_access: 7
+            group: KeystoneServiceAdmin
+            group_access: 7
+    prop:import_route_target_list: ...
+         route_target:
+   *[old]2018-04-13T18:51:13.585414 prop:is_shared: false
+   *[new]2018-04-19T15:14:30.235991 prop:is_shared: true
+    prop:multi_policy_service_chains_enabled: false
+   *[old]2018-04-13T18:51:13.585214 prop:perms2: ...
+         owner: 07007e67196d4a97b8610b0d9daa5eaf
+         owner_access: 7
+         global_access: 0
+         share:
+   *[new]2018-04-19T15:14:30.236037 prop:perms2: ...
+         owner: 07007e67196d4a97b8610b0d9daa5eaf
+         owner_access: 7
+         global_access: 7
+         share:
+    prop:router_external: false
+    prop:virtual_network_network_id: 8
+    prop:virtual_network_properties: ...
+         allow_transit: False
+         mirror_destination: False
+         rpf: enable
+    ref:network_ipam:6e80550a-3ba0-4207-9036-2ac6f48a48ac: ...
+         is_weakref: False
+         attr:
+            ipam_subnets:
+                  subnet:
+                     ip_prefix: 10.10.10.0
+                     ip_prefix_len: 24
+                  addr_from_start: True
+                  enable_dhcp: True
+                  default_gateway: 10.10.10.1
+                  subnet_uuid: eda9232b-fec2-4717-8ab2-28376d8f0c09
+                  subnet_name: eda9232b-fec2-4717-8ab2-28376d8f0c09
+                  dns_server_address: 10.10.10.2
+    type: virtual_network
 ```
