@@ -309,8 +309,9 @@ class DB_comp():
                 removed = 0 if 'removed' not in tbl else len(tbl['removed'])
                 added = 0 if 'added' not in tbl else len(tbl['added'])
                 modified = 0 if 'modified' not in tbl else len(tbl['modified'])
-                print "%s%s (removed[-]: %d, added[+]: %d, modified[*]: %d)" \
-                        % (indent, tbl_name, removed, added, modified)
+                print ("{}{:32}removed[-]: {:3}  added[+]: {:3}"
+                       "  modified[*]: {:3}".format(
+                       indent, tbl_name, removed, added, modified))
                 if detail:
                     if removed:
                         for k in tbl['removed'].keys():
@@ -320,7 +321,7 @@ class DB_comp():
                             print "%s+ %s" % (2*indent, str(k))
                     if modified:
                         for k in tbl['modified'].keys():
-                            print "%s- %s" % (2*indent, str(k))
+                            print "%s* %s" % (2*indent, str(k))
 
     def print_obj_diff(self, uuid, old_obj, new_obj):
         indent = ' ' * 3
@@ -352,31 +353,49 @@ class DB_comp():
 class DB_show():
     """ Class to show objects in DB tables"""
     SUB_COMMAND = {
-            'config_db': [{
-                            'fqn': 'obj_fq_name_table',
-                            'uuid': 'obj_uuid_table',
-                            'shared_obj': 'obj_shared_table'},
-                            'config_db_uuid'],
-            'useragent': [{
-                            'kv': 'useragent_keyval_table'},
-                            'useragent'],
-            'to_bgp': [ {
-                            'sc_uuid': 'service_chain_uuid_table',
-                            'sc_ip': 'service_chain_ip_address_table',
-                            'sc': 'service_chain_table',
-                            'rt': 'route_target_table'},
-                            'to_bgp_keyspace'],
-            'svc_mon': [ {
-                            'si': 'service_instance_table',
-                            'lb': 'loadbalancer_table',
-                            'pl': 'pool_table'},
-                            'svc_monitor_keyspace'],
-            'dm': [ {
-                            'pnf': 'dm_pnf_resource_table',
-                            'pr': 'dm_pr_vn_ip_table'},
-                            'dm_keyspace'],
-            'zk': [ {}, 'zookeeper' ]
+        'config_db': [{ 'fqn': 'obj_fq_name_table',
+                        'uuid': 'obj_uuid_table',
+                        'shared_obj': 'obj_shared_table'},
+                      'config_db_uuid'],
+        'useragent': [{'kv': 'useragent_keyval_table'},
+                      'useragent'],
+        'to_bgp': [{'sc_uuid': 'service_chain_uuid_table',
+                     'sc_ip': 'service_chain_ip_address_table',
+                     'sc': 'service_chain_table',
+                     'rt': 'route_target_table'},
+                   'to_bgp_keyspace'],
+        'svc_mon': [{ 'si': 'service_instance_table',
+                      'lb': 'loadbalancer_table',
+                      'pl': 'pool_table'},
+                    'svc_monitor_keyspace'],
+        'dm': [{'pnf': 'dm_pnf_resource_table',
+                'pr': 'dm_pr_vn_ip_table'},
+               'dm_keyspace'],
+        'zk': [{}, 'zookeeper']
     }
+    # SUB_COMMAND = {
+    #         'config_db': [ {'fqn': 'obj_fq_name_table',
+    #                         'uuid': 'obj_uuid_table',
+    #                         'shared_obj': 'obj_shared_table'},
+    #                         'config_db_uuid'],
+    #         'useragent': [{ 'kv': 'useragent_keyval_table'},
+    #                         'useragent'],
+    #         'to_bgp': [ {'sc_uuid': 'service_chain_uuid_table',
+    #                         'sc_ip': 'service_chain_ip_address_table',
+    #                         'sc': 'service_chain_table',
+    #                         'rt': 'route_target_table'},
+    #                         'to_bgp_keyspace'],
+    #         'svc_mon': [ {
+    #                         'si': 'service_instance_table',
+    #                         'lb': 'loadbalancer_table',
+    #                         'pl': 'pool_table'},
+    #                         'svc_monitor_keyspace'],
+    #         'dm': [ {
+    #                         'pnf': 'dm_pnf_resource_table',
+    #                         'pr': 'dm_pr_vn_ip_table'},
+    #                         'dm_keyspace'],
+    #         'zk': [ {}, 'zookeeper' ]
+    # }
 
     OBJ_TYPES = [ 'service_appliance_set', 'virtual_router', 'security_group',
                   'global_system_config', 'network_policy', 'qos_config',
@@ -662,7 +681,8 @@ class DB_show():
         indent = ' ' * 3
         field_str = offset + indent + prefix + mtime + ' ' + field
         if field == 'fq_name' or isinstance(value, list):
-            print "%s: %s" % (field_str, ':'.join(str(e) for e in json.loads(value)))
+            print ("%s: %s" %
+                   (field_str, ':'.join(str(e) for e in json.loads(value))))
         elif isjson(value) or isinstance(value, dict):
             print "%s: ..." % (field_str)
             if detail:
@@ -683,15 +703,18 @@ class DB_show():
             [prefix, mask_len, addr] = display_name.split('/')[-4:-1]
             if is_number(mask_len) and int(mask_len) < 129:
                 if (int(mask_len) > 32 or '::' == prefix[-2:]):
-                    print "%sAddr: %s" % (offset + indent, dec_to_ip(long(addr), 6))
+                    print ("%sAddr: %s" %
+                           (offset + indent, dec_to_ip(long(addr), 6)))
                 else:
-                    print "%sAddr: %s" % (offset + indent, dec_to_ip(long(addr), 4))
+                    print ("%sAddr: %s" %
+                           (offset + indent, dec_to_ip(long(addr), 4)))
 
         print "%s%s" % (offset + indent, str(entry[0]))
 
         if detail:
             # assume the entry data order is the same as ZK_ENT_PROP
-            for e in [a + ' = ' + str(b) for a, b in zip(self.ZK_ENT_PROP, entry[1])]:
+            for e in [a + ' = ' + str(b)
+                      for a, b in zip(self.ZK_ENT_PROP, entry[1])]:
                 print "%s%s" % (offset+indent, e)
 
 def main():
@@ -699,13 +722,14 @@ def main():
         prog='db_explorer',
         description='Script to explore/compare Contrail configuration in json')
     parser.add_argument(
-        "--verbose", action='store_true', default=False,
+        '--version', action='version', version='%(prog)s ' + VERSION)
+    parser.add_argument(
+        '--json_file', default = 'db-dump.json', metavar='FILE',
+        help="Json file generated by db_json_exmin.py, default='%(default)s'")
+    parser.add_argument(
+        '-v', '--verbose', action='store_true', default=False,
         help="Run in verbose/INFO mode, default False")
-    parser.add_argument(
-        '-v', '--version', action='version', version='%(prog)s ' + VERSION)
-    parser.add_argument(
-        "--json_file", default = "db-dump.json", metavar='FILE',
-        help="Json file generated by db_json_exmin.py. default='%(default)s'")
+
 
     argv = sys.argv[1:]
     # stream=sys.stdout is to make all output to stdout instead of stderr
@@ -719,7 +743,7 @@ def main():
     else:
         logger.setLevel(logging.INFO)
 
-    json_file = os.environ.get('DB_JSON_FILE', "db-dump.json")
+    json_file = os.environ.get('DB_JSON_FILE', 'db-dump.json')
     try:
         json_file = argv[argv.index('--json_file') + 1]
     except ValueError:
