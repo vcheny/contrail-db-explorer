@@ -69,15 +69,35 @@ def dict_compare(d1, d2):
 
     return (d1_only, d2_only, modified)
 
-
-def dict_print(d, offset='', step=0):
+def dict_diff_print(d1, d2, detail, offset='', step=0):
     indent = ' ' * 3
-    for key, value in d.items():
-        if isinstance(value, dict):
-            print(offset + indent * step + str(key) + ':')
-            dict_print(value, offset, step+1)
-        else:
-            print(offset + indent * step + str(key) + ': ' + str(value))
+    for key, value in d1.items():
+        if key not in d2:
+            if isinstance(value, dict):
+                print(offset + indent * step + '- ' + str(key) + ':')
+                pretty_print(value, offset, step+1)
+            else:
+                print(offset + indent * step + '- ' + str(key) + ': '
+                        + str(value))
+        elif value != d2[key]:
+            if isinstance(value, dict):
+                print(offset + indent * step + '* ' + str(key) + ':')
+                dict_diff_print(value, d2[key], detail, offset, step+1)
+            else:
+                print(offset + indent * step + '- ' + str(key) + ': '
+                        + str(value))
+                print(offset + indent * step + '+ ' + str(key) + ': '
+                        + str(d2[key]))
+        elif detail:
+            pretty_print({key: value}, offset, step)
+    for key, value in d2.items():
+        if key not in d1:
+            if isinstance(value, dict):
+                print(offset + indent * step + '+ ' + str(key) + ':')
+                pretty_print(value, offset, step+1)
+            else:
+                print(offset + indent * step + '+ ' + str(key) + ': '
+                        + str(value))
 
 def pretty_print(d, offset='', step=0):
     indent = ' ' * 3
@@ -213,7 +233,7 @@ class DB_comp():
                 # comparing config_db_uuid since no object id is provided
                 self._compare_cassandra('config_db_uuid')
             else:
-                self._compare_object(args.objects)
+                self._compare_object(args.objects, args.detail)
 
         self.print_diff(args.detail)
 
@@ -274,7 +294,7 @@ class DB_comp():
             for type in self.ZK_PATHS:
                 if path.startswith(type):
                     return type
-            return 'others'
+            return 'other_paths'
 
         for path, value in diff['removed'].items():
             diff_zk[zk_type(path)]['removed'][path] = value
@@ -285,7 +305,7 @@ class DB_comp():
         for path, value in diff['modified'].items():
             diff_zk[zk_type(path)]['modified'][path] = value
 
-    def _compare_object(self, obj_ids):
+    def _compare_object(self, obj_ids, detail):
         old_db = self.old_db.cassandra
         new_db = self.new_db.cassandra
         for id in obj_ids:
@@ -296,7 +316,7 @@ class DB_comp():
                 self._logger.warning('%s not found in obj_uuid_table', id)
                 continue
 
-            self.print_obj_diff(id, old_obj, new_obj)
+            self.print_obj_diff(id, old_obj, new_obj, detail)
 
     def print_diff(self, detail):
         indent = ' ' * 3
@@ -323,7 +343,7 @@ class DB_comp():
                         for k in tbl['modified'].keys():
                             print "%s* %s" % (2*indent, str(k))
 
-    def print_obj_diff(self, uuid, old_obj, new_obj):
+    def print_obj_diff(self, uuid, old_obj, new_obj, detail):
         indent = ' ' * 3
         print "%s:" % uuid
         for field in sorted(set(old_obj.keys()) | set(new_obj.keys())):
@@ -331,22 +351,29 @@ class DB_comp():
                 mtime = ts_to_string(old_obj[field][1])
                 DB_show.print_obj_field(field, old_obj[field][0],
                                         mtime=mtime,
-                                        detail=True, prefix='-')
+                                        detail=True, prefix='- ')
             elif field not in old_obj and field in new_obj:
                 mtime = ts_to_string(new_obj[field][1])
                 DB_show.print_obj_field(field, new_obj[field][0],
                                         mtime=mtime,
-                                        detail=True, prefix='+')
+                                        detail=True, prefix='+ ')
             elif old_obj[field][0] != new_obj[field][0]:
-                old_mtime = ts_to_string(old_obj[field][1])
-                new_mtime = ts_to_string(new_obj[field][1])
-                DB_show.print_obj_field(field, old_obj[field][0],
-                                        mtime=old_mtime,
-                                        detail=True, prefix='*[old]')
-                DB_show.print_obj_field(field, new_obj[field][0],
-                                        mtime=new_mtime,
-                                        detail=True, prefix='*[new]')
-            else:
+                old_mtime = '@' + ts_to_string(old_obj[field][1])
+                new_mtime = '@' + ts_to_string(new_obj[field][1])
+                if (isjson(old_obj[field][0]) and
+                        isinstance(json.loads(old_obj[field][0]), dict)):
+                    print (indent + '* ' + str(field) + ' ' + new_mtime )
+                    dict_diff_print(json.loads(old_obj[field][0]),
+                                    json.loads(new_obj[field][0]),
+                                    detail, indent*2)
+                else:
+                    DB_show.print_obj_field(field, old_obj[field][0],
+                                            mtime= old_mtime,
+                                            detail=True, prefix='- ')
+                    DB_show.print_obj_field(field, new_obj[field][0],
+                                            mtime=new_mtime,
+                                            detail=True, prefix='+ ')
+            elif detail:
                 mtime = ts_to_string(old_obj[field][1])
                 DB_show.print_obj_field(field, old_obj[field][0], detail=True)
 
@@ -373,29 +400,6 @@ class DB_show():
                'dm_keyspace'],
         'zk': [{}, 'zookeeper']
     }
-    # SUB_COMMAND = {
-    #         'config_db': [ {'fqn': 'obj_fq_name_table',
-    #                         'uuid': 'obj_uuid_table',
-    #                         'shared_obj': 'obj_shared_table'},
-    #                         'config_db_uuid'],
-    #         'useragent': [{ 'kv': 'useragent_keyval_table'},
-    #                         'useragent'],
-    #         'to_bgp': [ {'sc_uuid': 'service_chain_uuid_table',
-    #                         'sc_ip': 'service_chain_ip_address_table',
-    #                         'sc': 'service_chain_table',
-    #                         'rt': 'route_target_table'},
-    #                         'to_bgp_keyspace'],
-    #         'svc_mon': [ {
-    #                         'si': 'service_instance_table',
-    #                         'lb': 'loadbalancer_table',
-    #                         'pl': 'pool_table'},
-    #                         'svc_monitor_keyspace'],
-    #         'dm': [ {
-    #                         'pnf': 'dm_pnf_resource_table',
-    #                         'pr': 'dm_pr_vn_ip_table'},
-    #                         'dm_keyspace'],
-    #         'zk': [ {}, 'zookeeper' ]
-    # }
 
     OBJ_TYPES = [ 'service_appliance_set', 'virtual_router', 'security_group',
                   'global_system_config', 'network_policy', 'qos_config',
@@ -679,7 +683,7 @@ class DB_show():
     def print_obj_field(field, value, mtime='', offset='',
                         detail=False, prefix=''):
         indent = ' ' * 3
-        field_str = offset + indent + prefix + mtime + ' ' + field
+        field_str = offset + indent + prefix + field + ' ' + mtime
         if field == 'fq_name' or isinstance(value, list):
             print ("%s: %s" %
                    (field_str, ':'.join(str(e) for e in json.loads(value))))
